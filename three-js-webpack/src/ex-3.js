@@ -9,6 +9,7 @@ if (WEBGL.isWebGLAvailable()) {
 
     //카메라
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
     //랜더러
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -18,7 +19,7 @@ if (WEBGL.isWebGLAvailable()) {
     function render(time){
         time *= 0.001;
 
-        /*cube.rotation.x = time;
+/*        cube.rotation.x = time;
         cube.rotation.y = time;*/
 
         renderer.render(scene, camera);
@@ -28,6 +29,6 @@ if (WEBGL.isWebGLAvailable()) {
 
 
 } else {
-  var warning = WEBGL.getWebGLErrorMessage()
-  document.body.appendChild(warning)
+  var warning = WEBGL.getWebGLErrorMessage();
+  document.body.appendChild(warning);
 }
