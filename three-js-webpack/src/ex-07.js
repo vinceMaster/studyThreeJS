@@ -11,9 +11,15 @@ if (WEBGL.isWebGLAvailable()) {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xeeeeee);
 
-    //카메라
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 2;
+    //카메라 추가
+    const fov = 100; //시야각, 화각
+    const aspect = window.innerWidth / window.innerHeight; //종횡비
+    const near = 0.1; //카메라의 시야가 시작되는 시점
+    const far = 1000;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    camera.position.set(0,0,1);
+/*    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 2;*/
 
     //랜더러
     const renderer = new THREE.WebGLRenderer({
@@ -21,13 +27,14 @@ if (WEBGL.isWebGLAvailable()) {
         antialios : true
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-
     document.body.appendChild(renderer.domElement);
 
+/*
     //빛
     const pointLight = new THREE.PointLight(0xffffff,1);
     pointLight.position.set(0,2,12);
     scene.add(pointLight);
+*/
 
     //texture 추가
     const textureLoader = new THREE.TextureLoader();
@@ -40,50 +47,14 @@ if (WEBGL.isWebGLAvailable()) {
     const geometry = new THREE.BoxGeometry(0.5,0.5,0.5);
 
     const material01 = new THREE.MeshBasicMaterial({
-        map : textureBaseColor
+        map : textureBaseColor,
+        color : 0xFF7F00
     });
     const obj01 = new THREE.Mesh(geometry, material01);
-    obj01.position.x = -2;
+    obj01.rotation.y = 0.5;
     scene.add(obj01);
 
-    const material02 = new THREE.MeshStandardMaterial({
-        map : textureBaseColor,
-        normalMap : textureNormalMap
-    });
-    const obj02 = new THREE.Mesh(geometry, material02);
-    obj02.position.x = -1;
-    scene.add(obj02);
-
-    const material03 = new THREE.MeshStandardMaterial({
-        map : textureBaseColor,
-        normalMap : textureNormalMap,
-        displacementMap : textureHeightMap,
-        displacementScale : 0.05
-    });
-    const obj03 = new THREE.Mesh(geometry, material03);
-    obj03.position.x = -0;
-    scene.add(obj03);
-
-    const material04 = new THREE.MeshStandardMaterial({
-        map : textureBaseColor,
-        normalMap : textureNormalMap,
-        displacementMap : textureHeightMap,
-        displacementScale : 0.03,
-        roughnessMap : textureRoughnessMap
-    });
-    const obj04 = new THREE.Mesh(geometry, material04);
-    obj04.position.x = 1;
-    scene.add(obj04);
-
-    const material05 = new THREE.MeshPhongMaterial({
-        color:0xFF7F00,
-        shininess : 120,
-        specular : 0x004fff,
-
-    });
-    const obj05 = new THREE.Mesh(geometry, material05);
-    obj05.position.x = 2;
-    scene.add(obj05);
+    //바닥 추가
 
     function render(time){
 /*        time *= 0.001;

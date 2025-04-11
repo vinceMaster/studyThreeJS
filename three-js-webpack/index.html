@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="icon" href="static/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="static/styles/main.css">
-    <title>Three.JS-Webpack Boilerplate</title>
+    <title>3D 모델링 실습</title>
   </head>
   <body>
+  <div id="ui">
+    <label>랙: <input type="number" id="rackInput" min="1" max="3" value="0" /></label>
+    <label>행: <input type="number" id="levelInput" min="1" max="5" value="0" /></label>
+    <label>열: <input type="number" id="rowInput" min="1" max="10" value="0" /></label>
+    <br /><br />
+    <button id="addBtn">박스 넣기</button>
+    <button id="removeBtn">박스 빼기</button>
+  </div>
     <script src="public/bundle.js"></script>
   </body>
 </html>
