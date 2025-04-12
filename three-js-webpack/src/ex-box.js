@@ -130,10 +130,44 @@ function isValidIndex(rack, level, row) {
     );
 }
 
+const conveyorLength = 90; // 벨트 길이
+const conveyorWidth = 5;   // 벨트 너비
+const conveyorHeight = 0.5; // 벨트 높이
+
+// 컨베이어 벨트 geometry
+const conveyorGeometry = new THREE.BoxGeometry(conveyorLength, conveyorHeight, conveyorWidth);
+const conveyorMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 }); // 색상 조정 가능
+const conveyorBelt = new THREE.Mesh(conveyorGeometry, conveyorMaterial);
+
+// 벨트를 장면에 추가
+scene.add(conveyorBelt);
+// 벨트 초기 위치 설정
+conveyorBelt.position.set(0, 0.5, 30); // 필요에 따라 위치 조정
+// --- 박스 추가 ---
+const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
+const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+const movingBox = new THREE.Mesh(boxGeometry, boxMaterial);
+scene.add(movingBox);
+
+// 박스 초기 위치 (컨베이어 벨트 왼쪽에서 시작)
+movingBox.position.set(-conveyorLength / 2 + 1, 1.75, 30);
+
+
     // 애니메이션 루프
+    const clock = new THREE.Clock();
     function animate() {
         requestAnimationFrame(animate);
+const delta = clock.getDelta();
+  const speed = 5; // 이동 속도
+
+  // 박스가 벨트 오른쪽 끝까지 가면 다시 왼쪽으로 되돌림
+  movingBox.position.x += speed * delta;
+  if (movingBox.position.x > conveyorLength / 2 - 1) {
+    movingBox.position.x = -conveyorLength / 2 + 1;
+  }
+
         renderer.render(scene, camera);
+
     }
     animate();
 
