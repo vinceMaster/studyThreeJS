@@ -75,7 +75,21 @@ function createRack(x, z) {
     createRack(0, 0);
     createRack(30, 0);
 
+function isCellOccupied(rackIndex, level, row) {
+    const rackGroup = racks[rackIndex];
+    const targetY = level * 2.2;
+    const actualRow = 9 - row;
+    const targetZ = actualRow * 3.6 - 18;
 
+    // 해당 위치의 랙 셀 찾기
+    const cell = rackGroup.children.find(child =>
+        child.isMesh &&
+        Math.abs(child.position.y - targetY) < 0.1 &&
+        Math.abs(child.position.z - targetZ) < 0.1
+    );
+
+    return cell && cell.material.color.getHex() === 0xff0000; // 빨간색이면 true
+}
 function toggleCellColor(rackIndex, level, row, isAdd) {
     const rackGroup = racks[rackIndex];
     const targetY = level * 2.2;
@@ -96,14 +110,38 @@ function toggleCellColor(rackIndex, level, row, isAdd) {
         console.warn('셀을 찾을 수 없습니다.');
     }
 }
+// --- 전역 상태 변수 ---
+let deliveryInProgress = false;
+let targetRackIndex = null;
+let targetRow = null;
+let targetLevel = null;
+let isAddMode = false;
+
+let branching = false;
+let branchIndex = 0;
+let branchTargetReached = false;
 
 document.getElementById('addBtn').addEventListener('click', () => {
     const rack = parseInt(document.getElementById('rackInput').value)-1;
     const row = parseInt(document.getElementById('rowInput').value)-1;
     const level = parseInt(document.getElementById('levelInput').value)-1;
 
-    if (isValidIndex(rack, level, row)) {
-        toggleCellColor(rack, level, row, true); // true = 넣기 (빨간색)
+    if (isValidIndex(rack, level, row) && !deliveryInProgress) {
+            if (isCellOccupied(rack, level, row)) {
+                alert("이미 박스가 존재합니다!");
+                return;
+            }
+        deliveryInProgress = true;
+        isAddMode = true;
+        targetRackIndex = rack;
+        targetRow = row;
+        targetLevel = level;
+
+        // 박스 초기화
+        movingBox.position.set(-conveyorLength / 2 + 1, 1.75, 30);
+        branchIndex = 0;
+        branching = false;
+        branchTargetReached = false;
     } else {
         alert('잘못된 입력입니다. (랙: 1~3, 행: 1~5, 열: 1~10)');
     }
@@ -139,32 +177,83 @@ const conveyorGeometry = new THREE.BoxGeometry(conveyorLength, conveyorHeight, c
 const conveyorMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 }); // 색상 조정 가능
 const conveyorBelt = new THREE.Mesh(conveyorGeometry, conveyorMaterial);
 
-// 벨트를 장면에 추가
-scene.add(conveyorBelt);
 // 벨트 초기 위치 설정
 conveyorBelt.position.set(0, 0.5, 30); // 필요에 따라 위치 조정
+// 벨트를 장면에 추가
+scene.add(conveyorBelt);
+
 // --- 박스 추가 ---
 const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
 const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 const movingBox = new THREE.Mesh(boxGeometry, boxMaterial);
 scene.add(movingBox);
 
-// 박스 초기 위치 (컨베이어 벨트 왼쪽에서 시작)
-movingBox.position.set(-conveyorLength / 2 + 1, 1.75, 30);
 
+// 각 랙 앞에 분기 벨트 (Z축 위쪽)
+const branchZ = 30; // 랙 앞 거리
+const branchLength = 10;
+
+const branches = [-30, 0, 30].map(x => {
+    const branch = new THREE.Mesh(
+        new THREE.BoxGeometry(conveyorWidth, conveyorHeight, branchLength),
+        new THREE.MeshBasicMaterial({ color: 0x555555  })
+    );
+    branch.position.set(x, 0.5, branchZ - branchLength / 2);
+    scene.add(branch);
+    return branch;
+});
+movingBox.position.set(-conveyorLength / 2 + 1, 1.75, 30);
+// 박스 초기 위치 (컨베이어 벨트 왼쪽에서 시작)
+
+let phase = 0;
+let targetX = [-30, 0, 30];
+let branchTimer = 0;
 
     // 애니메이션 루프
     const clock = new THREE.Clock();
     function animate() {
-        requestAnimationFrame(animate);
-const delta = clock.getDelta();
-  const speed = 5; // 이동 속도
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    const speed = 10; // 이동 속도
 
-  // 박스가 벨트 오른쪽 끝까지 가면 다시 왼쪽으로 되돌림
-  movingBox.position.x += speed * delta;
-  if (movingBox.position.x > conveyorLength / 2 - 1) {
-    movingBox.position.x = -conveyorLength / 2 + 1;
-  }
+      if (deliveryInProgress) {
+          if (!branching) {
+              // 메인 벨트 따라 X축 이동
+              movingBox.position.x += speed * delta;
+
+              // 목표 위치 도달하면 브랜치 진입
+              if (Math.abs(movingBox.position.x - targetX[targetRackIndex]) < 0.5) {
+                  branching = true;
+              }
+          } else {
+              // 브랜치로 위쪽 Z축 이동
+              const branchEndZ = branchZ - branchLength / 2;
+              if (movingBox.position.z > branchEndZ) {
+                  movingBox.position.z -= speed * delta;
+              } else if (!branchTargetReached) {
+                  // 도달하면 셀 색 변경 & 박스 제거
+                  branchTargetReached = true;
+
+                  // 셀 색상 토글
+                  toggleCellColor(targetRackIndex, targetLevel, targetRow, isAddMode);
+
+                  // 박스 제거
+                  scene.remove(movingBox);
+
+                  // 일정 시간 후 박스 리셋
+                  setTimeout(() => {
+                      movingBox.position.set(-conveyorLength / 2 + 1, 1.75, branchZ);
+                      //movingBox.position.z = 30;
+                      scene.add(movingBox);
+
+                      // 상태 초기화
+            deliveryInProgress = false;
+            branching = false;
+            branchTargetReached = false;
+                  }, 1000);
+              }
+          }
+      }
 
         renderer.render(scene, camera);
 
